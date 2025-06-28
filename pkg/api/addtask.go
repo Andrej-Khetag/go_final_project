@@ -17,25 +17,26 @@ func addTaskHandler(w http.ResponseWriter, r *http.Request) {
 	// Декодирую JSON-запрос в структуру задачи
 	err := json.NewDecoder(r.Body).Decode(&task)
 	if err != nil {
-		writeJSON(w, map[string]string{"error": err.Error()})
+		writeJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	task.Title = strings.TrimSpace(task.Title)
 	if task.Title == "" {
-		writeJSON(w, map[string]string{"error": "Не указан заголовок задачи"})
+		writeJSONError(w, "Не указан заголовок задачи", http.StatusBadRequest)
 		return
 	}
 
 	err = checkDate(&task)
 	if err != nil {
-		writeJSON(w, map[string]string{"error": err.Error()})
+		writeJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	// Добавляю задачи в БД
 	id, err := db.AddTask(&task)
 	if err != nil {
-		writeJSON(w, map[string]string{"error": err.Error()})
+		writeJSONError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -56,16 +57,18 @@ func checkDate(task *db.Task) error {
 		return err
 	}
 
-	// Если указано повторение - всегда проверяю и вычисляю следующую дату
 	if strings.TrimSpace(task.Repeat) != "" {
+		// Проверяю корректность правила повторения
 		next, err := scheduler.NextDate(now, task.Date, task.Repeat)
 		if err != nil {
 			return err
 		}
+
 		if isPastDate(now, t) {
 			task.Date = next
 		}
 	} else {
+		
 		if isPastDate(now, t) {
 			task.Date = nowStr
 		}
@@ -74,7 +77,7 @@ func checkDate(task *db.Task) error {
 	return nil
 }
 
-// Сравнение по дате (без времени): возвращает true, если t раньше сегодняшнего дня
+// Сравает по дате (без времени): возвращает true, если t раньше сегодняшнего дня
 func isPastDate(now time.Time, t time.Time) bool {
 	nowStr := now.Format("20060102")
 	tStr := t.Format("20060102")

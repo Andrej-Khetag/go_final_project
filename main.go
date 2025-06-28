@@ -4,9 +4,7 @@ import (
     "fmt"
     "log"
     "net/http"
-    "os"
     "path/filepath"
-    "strconv"
 
     settings "github.com/Yandex-Practicum/go_final_project/tests"
     "github.com/Yandex-Practicum/go_final_project/pkg/db"
@@ -19,10 +17,7 @@ func main() {
     api.Init()
 
     // инициализирую БД
-    dbFile := "scheduler.db"
-    if env := os.Getenv("TODO_DBFILE"); env != "" {
-        dbFile = env
-    }
+    dbFile := api.GetDBFile("scheduler.db")
     if err := db.Init(dbFile); err != nil {
         log.Fatalf("Не удалось инициализировать БД: %v", err)
     }
@@ -30,15 +25,7 @@ func main() {
 
     // определяю порт
 	// беру число 7540 из tests/settings.go
-    port := settings.Port
-    if env := os.Getenv("TODO_PORT"); env != "" {
-        // если есть переменная окружения TODO_PORT, пытаюсь её прочитать как число
-        if p, err := strconv.Atoi(env); err == nil {
-            port = p
-        } else {
-            log.Printf("TODO_PORT=%q не число, используем %d", env, port)
-        }
-    }
+    port := api.GetPort(settings.Port)
 
     // готовлю файловый сервер
     webDir := filepath.Join(".", "web")
@@ -48,7 +35,7 @@ func main() {
 
     // запускаю сервер
     addr := fmt.Sprintf(":%d", port)
-    log.Printf("Сервер слушает http://localhost%s …", addr)
+    log.Printf("Сервер слушает http://localhost%s", addr)
     if err := http.ListenAndServe(addr, nil); err != nil {
         log.Fatalf("Ошибка сервера: %v", err)
     }
