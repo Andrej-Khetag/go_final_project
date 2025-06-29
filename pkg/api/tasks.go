@@ -17,7 +17,7 @@ type TasksResp struct {
 func tasksHandler(w http.ResponseWriter, r *http.Request) {
 	tasks, err := db.Tasks(maxTasks)
 	if err != nil {
-		writeJSON(w, map[string]string{"error": err.Error()})
+		writeJSONError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	
@@ -37,12 +37,12 @@ func taskHandler(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		id := r.FormValue("id")
 		if strings.TrimSpace(id) == "" {
-			writeJSON(w, map[string]string{"error": "Не указан идентификатор"})
+			writeJSONError(w, "Не указан идентификатор", http.StatusBadRequest)
 			return
 		}
 		task, err := db.GetTask(id)
 		if err != nil {
-			writeJSON(w, map[string]string{"error": err.Error()})
+			writeJSONError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		writeJSON(w, task)
@@ -51,12 +51,12 @@ func taskHandler(w http.ResponseWriter, r *http.Request) {
 	case http.MethodDelete:
 		id := r.FormValue("id")
 		if strings.TrimSpace(id) == "" {
-			writeJSON(w, map[string]string{"error": "Не указан идентификатор"})
+			writeJSONError(w, "Не указан идентификатор", http.StatusBadRequest)
 			return
 		}
 		err := db.DeleteTask(id)
 		if err != nil {
-			writeJSON(w, map[string]string{"error": err.Error()})
+			writeJSONError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		writeJSON(w, map[string]string{})
@@ -71,30 +71,30 @@ func updateTaskHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(&task)
 	if err != nil {
-		writeJSON(w, map[string]string{"error": err.Error()})
+		writeJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	if strings.TrimSpace(task.ID) == "" {
-		writeJSON(w, map[string]string{"error": "Не указан идентификатор"})
+		writeJSONError(w, "Не указан идентификатор", http.StatusBadRequest)
 		return
 	}
 
 	task.Title = strings.TrimSpace(task.Title)
 	if task.Title == "" {
-		writeJSON(w, map[string]string{"error": "Не указан заголовок задачи"})
+		writeJSONError(w, "Не указан заголовок задачи", http.StatusBadRequest)
 		return
 	}
 
 	err = checkDate(&task)
 	if err != nil {
-		writeJSON(w, map[string]string{"error": err.Error()})
+		writeJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	err = db.UpdateTask(&task)
 	if err != nil {
-		writeJSON(w, map[string]string{"error": err.Error()})
+		writeJSONError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 

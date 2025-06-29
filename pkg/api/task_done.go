@@ -18,20 +18,20 @@ func taskDoneHandler(w http.ResponseWriter, r *http.Request) {
 	
 	id := r.URL.Query().Get("id")
 	if strings.TrimSpace(id) == "" {
-		writeJSON(w, map[string]string{"error": "Не указан идентификатор"})
+		writeJSONError(w, "Не указан идентификатор", http.StatusBadRequest)
 		return
 	}
 
 	task, err := db.GetTask(id)
 	if err != nil {
-		writeJSON(w, map[string]string{"error": err.Error()})
+		writeJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	if strings.TrimSpace(task.Repeat) == "" {
 		err := db.DeleteTask(id)
 		if err != nil {
-			writeJSON(w, map[string]string{"error": err.Error()})
+			writeJSONError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 		writeJSON(w, map[string]string{})
@@ -41,14 +41,13 @@ func taskDoneHandler(w http.ResponseWriter, r *http.Request) {
 	now := time.Now()
 	next, err := scheduler.NextDate(now, task.Date, task.Repeat)
 	if err != nil {
-		writeJSON(w, map[string]string{"error": err.Error()})
+		writeJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// Обновляю дату задачи на следующую дату выполнения
 	err = db.UpdateDate(next, id)
 	if err != nil {
-		writeJSON(w, map[string]string{"error": err.Error()})
+		writeJSONError(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
